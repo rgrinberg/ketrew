@@ -571,8 +571,8 @@ type t = {
   name: string;
   metadata: [`String of string] option;
   dependencies: id list;
-  failure_triggers: id list;
-  success_triggers: id list;
+  on_failure: id list;
+  on_success: id list;
   make: Build_process.t;
   condition: Condition.t option;
   equivalence: Equivalence.t;
@@ -583,7 +583,7 @@ type t = {
 
 let create
     ?id ?name ?metadata
-    ?(dependencies=[]) ?(failure_triggers=[]) ?(success_triggers=[])
+    ?(dependencies=[]) ?(on_failure=[]) ?(on_success=[])
     ?(make=Build_process.nop)
     ?condition ?(equivalence=`Same_active_condition) ?(tags=[])
     () = 
@@ -591,7 +591,7 @@ let create
   let id = Option.value id ~default:(Unique_id.create ()) in
   { id; name = Option.value name ~default:id; metadata; tags; 
     log = []; dependencies; make; condition; history; equivalence;
-    failure_triggers; success_triggers; }
+    on_failure; on_success; }
 
 let to_serializable t = t
 let of_serializable t = t
@@ -599,8 +599,8 @@ let of_serializable t = t
 let id : t -> Unique_id.t = fun t -> t.id
 let name : t -> string = fun t -> t.name
 let dependencies: t -> id list = fun t -> t.dependencies
-let fallbacks: t -> id list = fun t -> t.failure_triggers
-let success_triggers: t -> id list = fun t -> t.success_triggers
+let on_success: t -> id list = fun t -> t.on_success
+let on_failure: t -> id list = fun t -> t.on_failure
 let metadata = fun t -> t.metadata
 let build_process: t -> Build_process.t = fun t -> t.make
 let condition: t -> Condition.t option = fun t -> t.condition
@@ -684,11 +684,11 @@ module Automaton = struct
   let transition t : transition =
     let return_with_history ?(no_change=false) t h =
       with_history t h, (if no_change then `No_change else `Changed_state) in
-    let activate_fallbacks c =
-      `Activate (t.failure_triggers, (fun ?log () ->
+    let activate_failures c =
+      `Activate (t.on_failure, (fun ?log () ->
           return_with_history t (`Finished (to_history ?log c)))) in
-    let activate_success_triggers c =
-      `Activate (t.success_triggers, (fun ?log () ->
+    let activate_successes c =
+      `Activate (t.on_success, (fun ?log () ->
           return_with_history t (`Finished (to_history ?log c)))) in
     let from_killing_state killable_history current_state =
       let{ log; previous_state } = killable_history in
@@ -739,7 +739,7 @@ module Automaton = struct
             return_with_history t (`Building (to_history ?log c)))
       end      
     | `Already_done _ as c ->
-      activate_success_triggers c
+      activate_successes c
     | `Still_building _
     | `Building _ as c ->
       `Check_and_activate_dependencies begin fun ?log -> function
@@ -752,7 +752,7 @@ module Automaton = struct
           (`Still_building (to_history ?log c))
       end
     | `Did_not_ensure_condition _
-    | `Dependencies_failed _ as c -> activate_fallbacks c
+    | `Dependencies_failed _ as c -> activate_failures c
     | `Starting _
     | `Tried_to_start _ as c ->
       begin match build_process t with
@@ -810,9 +810,9 @@ module Automaton = struct
             return_with_history t (`Verified_success (to_history ?log c)))
       end      
     | `Verified_success _ as c ->
-      activate_success_triggers c
+      activate_successes c
     | `Failed_running _ as c ->
-      activate_fallbacks c
+      activate_failures c
     | `Tried_to_kill _ as c ->
       let killable_history =
         let rec go =
@@ -830,7 +830,7 @@ module Automaton = struct
     | `Failed_to_eval_condition _
     | `Failed_to_kill _ as c ->
       (* what should we actually do? *)
-      activate_fallbacks c
+      activate_failures c
     end
 
 end

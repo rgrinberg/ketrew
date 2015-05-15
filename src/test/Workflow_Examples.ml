@@ -322,7 +322,7 @@ let deploy_website branches =
                  && sh "git commit -a -m 'update website'"
                  && shf "git push origin gh-pages"
                ))
-      ~failure_triggers:[ancestor "Failed" ~dependencies:[]]
+      ~on_failure:[ancestor "Failed" ~dependencies:[]]
   in
   (* `submit` will activate the target `ancestor` and then `commit_website`, and
      add all their (transitive) dependencies to the system.  *)

@@ -102,8 +102,8 @@ let target
   % itemize [
     "ID", a id t;
     "Dependencies", OCaml.list s (dependencies t);
-    "Fallbacks", OCaml.list s (fallbacks t);
-    "On Success trigger", OCaml.list s (success_triggers t);
+    "Failures", OCaml.list s (on_failure t);
+    "Successes", OCaml.list s (on_success t);
     "Metadata", OCaml.option (doc_metadata ~full:metadata_details) (metadata t);
     "Build-process",
     doc_build_process ?with_details:build_process_details

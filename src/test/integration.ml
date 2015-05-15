@@ -116,7 +116,7 @@ The VM still has a misconfiguration: the machine cannot
   let namify t sub =
     sprintf "%s: %s" t.hostname sub
 
-  let prepare ?success_triggers t =
+  let prepare ?on_success t =
     let open Ketrew.EDSL in
     let host = Test_host.as_host () in
     let init =
@@ -152,7 +152,7 @@ The VM still has a misconfiguration: the machine cannot
       target (* not a `file_target`, because we want this file regenerated 
                 every time. We set the `product` but not the “condition”. *)
         (namify t "vagrant-ssh-config")
-        ~dependencies:[running] ?success_triggers
+        ~dependencies:[running] ?on_success
         ~product:(file ~host:(Test_host.as_host ()) t.ssh_config)
         ~make:(Test_host.do_on Program.(
             in_dir t
@@ -409,12 +409,12 @@ let ensure_lsf_is_running ~box =
         && exec ["sudo"; "/usr/etc/openlava"; "start"]
       ))
 
-let lsf_job ?success_triggers ?failure_triggers ~box () =
+let lsf_job ?on_success ?on_failure ~box () =
   let open Ketrew.EDSL in
   let output = "/tmp/du-sh-dollar-home" in
   let host = Vagrant_box.as_host box in
   let name = "lsf-1" in
-  file_target ~host ~name output ?success_triggers ?failure_triggers
+  file_target ~host ~name output ?on_success ?on_failure
     ~dependencies:[ ensure_lsf_is_running ~box ]
     ~tags:["integration"; "lsf"]
     ~make:(
@@ -464,14 +464,14 @@ let finish_pbs_setup ~box () =
     ~make:(Vagrant_box.do_on box
              ~program:Program.( chain (List.map ~f:sh setup)))
 
-let pbs_job ?success_triggers ?failure_triggers ~box kind =
+let pbs_job ?on_success ?on_failure ~box kind =
   let open Ketrew.EDSL in
   let setup = finish_pbs_setup ~box () in
   match kind with
   | `Always_runs ->
     let host = Vagrant_box.as_host box in
     let name = "pbs-2" in
-    target name ?success_triggers ?failure_triggers
+    target name ?on_success ?on_failure
       ~dependencies:[setup]
       ~tags:["integration"; "pbs"]
       ~make:( pbs ~host ~name Program.( 
@@ -487,7 +487,7 @@ let pbs_job ?success_triggers ?failure_triggers ~box kind =
     let output = "/tmp/du-sh-slash" in
     let host = Vagrant_box.as_host box in
     let name = "pbs-1" in
-    file_target ~host ~name output ?success_triggers ?failure_triggers
+    file_target ~host ~name output ?on_success ?on_failure
       ~dependencies:[setup]
       ~tags:["integration"; "pbs"]
       ~make:(
@@ -522,8 +522,8 @@ let test =
           pbs_job ~box:pbs_host `Always_runs;
           pbs_job ~box:pbs_host `File_target;
         ]
-        ~success_triggers:[clean]
-        ~failure_triggers:[clean]
+        ~on_success:[clean]
+        ~on_failure:[clean]
     method clean_up =
       Ketrew.EDSL.target "Destroy VMs"
         ~dependencies:[
@@ -535,8 +535,8 @@ let test =
       let prepare = self#prepare in
       Ketrew.EDSL.target "All Intergration Tests MiddleTarget (prep → * < {go,clean})"
         ~dependencies:[prepare]
-        ~success_triggers:[self#go_and clean]
-        ~failure_triggers:[clean]
+        ~on_success:[self#go_and clean]
+        ~on_failure:[clean]
 
     method box_names = ["LSF"; "PBS"]
     method ssh = function
