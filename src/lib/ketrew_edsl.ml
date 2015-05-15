@@ -92,7 +92,7 @@ class type user_target =
     method is_active: bool
     method id: Unique_id.t
     method render: Ketrew_target.t
-    method dependencies: user_target list
+    method depends_on: user_target list
     method on_failure: user_target list
     method on_success: user_target list
     method metadata: [`String of string ] option
@@ -102,7 +102,7 @@ class type user_target =
 
 let user_target_internal
     ?(active = false)
-    ?(dependencies = [])
+    ?(depends_on = [])
     ?(on_failure = [])
     ?(on_success = [])
     ?(name: string option)
@@ -122,7 +122,7 @@ let user_target_internal
       | None -> id
       | Some s -> s
     method id = id
-    method dependencies = dependencies
+    method depends_on = depends_on
     method on_failure = on_failure
     method on_success = on_success
     method activate = active <- true
@@ -131,7 +131,7 @@ let user_target_internal
     method render =
       Target.create ?metadata
         ~id:self#id
-        ~dependencies:(List.map dependencies ~f:(fun t -> t#id))
+        ~depends_on:(List.map depends_on ~f:(fun t -> t#id))
         ~on_failure:(List.map on_failure ~f:(fun t -> t#id))
         ~on_success:(List.map on_success ~f:(fun t -> t#id))
         ~name:self#name ?condition:done_when
@@ -145,19 +145,19 @@ let user_target_internal
 
   end
 
-let target ?active ?dependencies ?make ?done_when ?metadata ?product
+let target ?active ?depends_on ?make ?done_when ?metadata ?product
     ?equivalence ?on_failure ?on_success ?tags name =
   user_target_internal
     ?equivalence ?on_failure ?tags ?on_success
-    ?active ?dependencies ~name ?make ?metadata ?done_when ?product ()
+    ?active ?depends_on ~name ?make ?metadata ?done_when ?product ()
 
 let file_target 
-    ?dependencies ?make ?metadata ?name ?host ?equivalence ?on_failure
+    ?depends_on ?make ?metadata ?name ?host ?equivalence ?on_failure
     ?on_success ?tags path =
   let product = file ?host path in
   let name = Option.value name ~default:("Make:" ^ path) in
   target ~product ?equivalence ?on_failure ?tags ?on_success
-    ~done_when:product#exists ?dependencies ?make ?metadata name
+    ~done_when:product#exists ?depends_on ?make ?metadata name
 
 module Program = struct
 

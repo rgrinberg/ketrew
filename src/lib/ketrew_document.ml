@@ -101,7 +101,7 @@ let target
   s "Target " % a name t % n
   % itemize [
     "ID", a id t;
-    "Dependencies", OCaml.list s (dependencies t);
+    "Dependencies", OCaml.list s (depends_on t);
     "Failures", OCaml.list s (on_failure t);
     "Successes", OCaml.list s (on_success t);
     "Metadata", OCaml.option (doc_metadata ~full:metadata_details) (metadata t);

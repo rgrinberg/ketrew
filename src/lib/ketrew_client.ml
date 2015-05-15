@@ -308,7 +308,7 @@ let user_command_list t =
   t#activate;
   let rec go_through_deps t =
     t#render ::
-    List.concat_map t#dependencies ~f:go_through_deps
+    List.concat_map t#depends_on ~f:go_through_deps
     @ List.concat_map t#on_failure ~f:go_through_deps
     @ List.concat_map t#on_success ~f:go_through_deps
   in

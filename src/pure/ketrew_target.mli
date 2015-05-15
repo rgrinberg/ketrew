@@ -181,7 +181,7 @@ type t
 val create :
   ?id:id -> ?name:string ->
   ?metadata:[ `String of string ] ->
-  ?dependencies:id list ->
+  ?depends_on:id list ->
   ?on_failure:id list ->
   ?on_success:id list ->
   ?make:Build_process.t ->
@@ -200,7 +200,7 @@ val id : t -> Unique_id.t
 val name : t -> string
 (** Get a target's user-defined name. *)
 
-val dependencies: t -> id list
+val depends_on: t -> id list
 val on_success: t -> id list
 val on_failure: t -> id list
 val metadata: t -> [`String of string] option

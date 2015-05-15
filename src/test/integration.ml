@@ -144,7 +144,7 @@ The VM still has a misconfiguration: the machine cannot
     in
     let running =
       target (namify t "vagrant-up")
-        ~dependencies:[init]
+        ~depends_on:[init]
         ~make:(Test_host.do_on Program.(
             in_dir t && exec ["vagrant"; "up"]))
     in
@@ -152,7 +152,7 @@ The VM still has a misconfiguration: the machine cannot
       target (* not a `file_target`, because we want this file regenerated 
                 every time. We set the `product` but not the “condition”. *)
         (namify t "vagrant-ssh-config")
-        ~dependencies:[running] ?on_success
+        ~depends_on:[running] ?on_success
         ~product:(file ~host:(Test_host.as_host ()) t.ssh_config)
         ~make:(Test_host.do_on Program.(
             in_dir t
@@ -170,7 +170,7 @@ The VM still has a misconfiguration: the machine cannot
     in
     let rm_temp =
       target (namify t "rm-temp")
-        ~dependencies:[kill]
+        ~depends_on:[kill]
         ~make:(Test_host.do_on Program.(exec ["rm"; "-fr"; t.dir]))
     in
     rm_temp
@@ -363,7 +363,7 @@ let install_lsf ~box =
   target "install-lsf"
     ~done_when:Condition.( Vagrant_box.exec_is_installed box ~exec:"bsub")
     ~tags:["intergration"]
-    ~dependencies:[Vagrant_box.with_installed ~packages box]
+    ~depends_on:[Vagrant_box.with_installed ~packages box]
     ~make:(
       Vagrant_box.do_on box Program.(
           exec ["wget"; "http://www.openlava.org/tarball/openlava-2.2.tar.gz"]
@@ -396,7 +396,7 @@ let ensure_lsf_is_running ~box =
           ~host:(Vagrant_box.as_host box)
           Program.(exec ["timeout"; "1"; "sh"; "-c"; "bjobs; exit 0"]))
     ~tags:["integration"]
-    ~dependencies:[ installed; ]
+    ~depends_on:[ installed; ]
     ~make:( Vagrant_box.do_on box Program.(
         chain (List.map config_files ~f:(fun (name, content) ->
             match content with
@@ -415,7 +415,7 @@ let lsf_job ?on_success ?on_failure ~box () =
   let host = Vagrant_box.as_host box in
   let name = "lsf-1" in
   file_target ~host ~name output ?on_success ?on_failure
-    ~dependencies:[ ensure_lsf_is_running ~box ]
+    ~depends_on:[ ensure_lsf_is_running ~box ]
     ~tags:["integration"; "lsf"]
     ~make:(
       lsf ~host ~name Program.(shf "du -sh $HOME > %s" output
@@ -436,7 +436,7 @@ let setup_pbs ~box () =
   target "install-pbs"
     (* ~done_when:Condition.( Vagrant_box.exec_is_installed box ~exec:"qsub") *)
     ~tags:["intergration"]
-    ~dependencies:[Vagrant_box.with_installed ~packages box]
+    ~depends_on:[Vagrant_box.with_installed ~packages box]
     ~make:(
       Vagrant_box.do_on box ~program:Program.(
           List.map setup Vagrant_box.sudo |> chain
@@ -472,7 +472,7 @@ let pbs_job ?on_success ?on_failure ~box kind =
     let host = Vagrant_box.as_host box in
     let name = "pbs-2" in
     target name ?on_success ?on_failure
-      ~dependencies:[setup]
+      ~depends_on:[setup]
       ~tags:["integration"; "pbs"]
       ~make:( pbs ~host ~name Program.( 
           shf "echo \"PBS-2 Starts:\n%s\""
@@ -488,7 +488,7 @@ let pbs_job ?on_success ?on_failure ~box kind =
     let host = Vagrant_box.as_host box in
     let name = "pbs-1" in
     file_target ~host ~name output ?on_success ?on_failure
-      ~dependencies:[setup]
+      ~depends_on:[setup]
       ~tags:["integration"; "pbs"]
       ~make:(
         pbs ~host ~name Program.(
@@ -504,20 +504,20 @@ let test =
   object  (self)
     method prepare =
       Ketrew.EDSL.target "Prepare VMs"
-        ~dependencies:[
+        ~depends_on:[
           Vagrant_box.prepare lsf_host;
           Vagrant_box.prepare pbs_host;
         ]
     method go =
       Ketrew.EDSL.target "Run Tests"
-        ~dependencies:[
+        ~depends_on:[
           lsf_job ~box:lsf_host ();
           pbs_job ~box:pbs_host `Always_runs;
           pbs_job ~box:pbs_host `File_target;
         ]
     method go_and clean =
       Ketrew.EDSL.target "Run Tests"
-        ~dependencies:[
+        ~depends_on:[
           lsf_job ~box:lsf_host ();
           pbs_job ~box:pbs_host `Always_runs;
           pbs_job ~box:pbs_host `File_target;
@@ -526,7 +526,7 @@ let test =
         ~on_failure:[clean]
     method clean_up =
       Ketrew.EDSL.target "Destroy VMs"
-        ~dependencies:[
+        ~depends_on:[
           Vagrant_box.destroy lsf_host;
           Vagrant_box.destroy pbs_host;
         ]
@@ -534,7 +534,7 @@ let test =
       let clean = self#clean_up in
       let prepare = self#prepare in
       Ketrew.EDSL.target "All Intergration Tests MiddleTarget (prep → * < {go,clean})"
-        ~dependencies:[prepare]
+        ~depends_on:[prepare]
         ~on_success:[self#go_and clean]
         ~on_failure:[clean]
 

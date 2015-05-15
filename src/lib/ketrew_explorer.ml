@@ -425,7 +425,7 @@ let explore_single_target ~client (es: exploration_state) target =
       | some -> [menu_item ~char ~log result] in
     let follow_deps_item =
       menu_item_of_id_list ~char:'d' ~log:Log.(s "Follow a dependency")
-        ~result:`Follow_dependencies (Target.dependencies target) in
+        ~result:`Follow_dependencies (Target.depends_on target) in
     let follow_failed_item =
       menu_item_of_id_list ~char:'f' ~log:Log.(s "Follow a failure")
         ~result:`Follow_failures (Target.on_failure target) in
@@ -619,7 +619,7 @@ let rec exploration_loop explorer state =
             match follow with
             | `Follow_failures -> (Target.on_failure t)
             | `Follow_successes -> (Target.on_success t)
-            | `Follow_dependencies -> (Target.dependencies t) in
+            | `Follow_dependencies -> (Target.depends_on t) in
           let rec next_target ids =
             begin pick_a_target_from_list explorer ids
               >>= function

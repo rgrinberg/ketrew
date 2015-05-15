@@ -570,7 +570,7 @@ type t = {
   id: id;
   name: string;
   metadata: [`String of string] option;
-  dependencies: id list;
+  depends_on: id list;
   on_failure: id list;
   on_success: id list;
   make: Build_process.t;
@@ -583,14 +583,14 @@ type t = {
 
 let create
     ?id ?name ?metadata
-    ?(dependencies=[]) ?(on_failure=[]) ?(on_success=[])
+    ?(depends_on=[]) ?(on_failure=[]) ?(on_success=[])
     ?(make=Build_process.nop)
     ?condition ?(equivalence=`Same_active_condition) ?(tags=[])
     () = 
   let history = `Passive (State.make_log ()) in
   let id = Option.value id ~default:(Unique_id.create ()) in
   { id; name = Option.value name ~default:id; metadata; tags; 
-    log = []; dependencies; make; condition; history; equivalence;
+    log = []; depends_on; make; condition; history; equivalence;
     on_failure; on_success; }
 
 let to_serializable t = t
@@ -598,7 +598,7 @@ let of_serializable t = t
 
 let id : t -> Unique_id.t = fun t -> t.id
 let name : t -> string = fun t -> t.name
-let dependencies: t -> id list = fun t -> t.dependencies
+let depends_on: t -> id list = fun t -> t.depends_on
 let on_success: t -> id list = fun t -> t.on_success
 let on_failure: t -> id list = fun t -> t.on_failure
 let metadata = fun t -> t.metadata
